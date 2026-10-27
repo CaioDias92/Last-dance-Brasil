@@ -1,1 +1,129 @@
 
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Last Dance Brasil</title>
+<style>
+:root{--bg:#07040f;--pink:#ff2d95;--cyan:#38f2ff;--green:#7cf0a8;--gold:#ffd84a}*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:radial-gradient(ellipse at 50% -10%,#4a1d7a,var(--bg) 62%) fixed;font-family:system-ui,Arial;color:#fff}
+header,main{padding:14px 4vw}header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-bottom:1px solid #ffffff22}
+.logo{font-weight:950;font-size:26px;letter-spacing:2px;font-style:italic}.logo span{background:linear-gradient(90deg,var(--gold),var(--pink));-webkit-background-clip:text;color:transparent}
+.tag{border:1px solid var(--cyan);border-radius:20px;padding:5px 10px;font-size:11px;color:var(--cyan)}main{max-width:1300px;margin:auto}
+h1{font-size:clamp(20px,3vw,30px);margin:6px 0}p{color:#c7cbe8;line-height:1.5;margin:6px 0}
+.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.panel{background:#ffffff0d;backdrop-filter:blur(8px);border:1px solid #ffffff22;border-radius:18px;padding:14px;min-width:0}
+h2{font-size:16px;margin:0 0 10px}.cam,.stage{position:relative;aspect-ratio:16/9;background:#02030a;border-radius:14px;overflow:hidden;display:grid;place-items:center;box-shadow:0 0 30px #ff2d9533}
+.stage{aspect-ratio:4/3;box-shadow:0 0 30px #38f2ff33}video{width:100%;height:100%;position:absolute;object-fit:contain;transform:scaleX(-1);display:none}
+canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.cam::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 80px #000c}
+.placeholder{text-align:center;color:#c7cbe8;z-index:1}.status,.controls,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.dot{width:9px;height:9px;border-radius:50%;background:#889}.dot.good{background:var(--green);box-shadow:0 0 8px var(--green)}
+button,label.file{border:0;border-radius:10px;padding:11px 13px;background:#30365e;color:#fff;font-weight:750;cursor:pointer;font-size:13px}button.primary{background:linear-gradient(90deg,var(--pink),#914cff)}button:disabled{opacity:.45}
+input[type=file]{display:none}select,input[type=number]{background:#0b1028;color:#fff;border:1px solid #ffffff30;border-radius:8px;padding:9px}input[type=number]{width:80px}
+.small{font-size:12px;color:#aeb8df;line-height:1.5}.scores{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.score{position:relative;overflow:hidden;background:#0b1028cc;border:1px solid var(--c);border-radius:12px;padding:10px}.score b{display:block;font-size:26px;color:var(--c)}.stars{color:var(--gold);letter-spacing:2px;margin-right:8px}
+.score i{position:absolute;left:0;bottom:0;height:3px;background:var(--c);transition:width .3s}
+.result{position:absolute;inset:0;background:#000c;display:grid;place-content:center;text-align:center;gap:6px;z-index:2;font-size:18px}.result h3{font-size:28px;margin:0;color:var(--gold)}
+.note{border-left:3px solid #ffe879;padding:10px;background:#ffe8790c;font-size:12px;color:#d9dcf1;line-height:1.5}audio{width:100%;margin:8px 0}
+@media(max-width:780px){.layout{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<header><div class="logo">LAST DANCE <span>BRASIL</span></div><div class="tag">VERSÃO 5 • PALCO E COACH</div></header>
+<main><h1>Siga o coach. Acerte os passos. 🎶</h1><p>Até 4 jogadores diante da mesma câmera. Na coreografia, seus braços são comparados com os do coach a cada batida; na competição livre, vale o movimento.</p>
+<div class="layout"><section class="panel"><h2>📷 Jogadores</h2><div class="cam" id="camBox"><video id="video" autoplay muted playsinline></video><canvas id="canvas"></canvas><div class="placeholder" id="placeholder">📱<br><b>Câmera desligada</b><br><small>Ative a câmera e permita o acesso.</small></div></div>
+<div class="status"><i class="dot" id="dot"></i><span id="status">Aguardando autorização da câmera.</span></div><div class="controls"><button class="primary" id="start">Ativar câmera</button><button id="stop" disabled>Desligar</button><button id="mirror" disabled>Virar imagem</button></div>
+<p class="small" id="modelStatus">O reconhecimento corporal é carregado pela internet. Use HTTPS. Mantenha todos inteiros no enquadramento.</p><div class="scores" id="scores"></div></section>
+<aside class="panel"><h2>🪩 Palco</h2><div class="stage" id="stageBox"><canvas id="stage"></canvas><div class="result" id="result" hidden></div></div>
+<div class="row"><label for="mode">Modo:</label><select id="mode"><option value="choreo">💃 Coreografia guiada</option><option value="free">🔥 Competição livre</option></select></div><p class="small" id="modeInfo">Imite o coach quando o pictograma chegar ao quadro branco.</p>
+<div class="row"><label for="song">Música:</label><select id="song"><option value="demo">Eletrônica (120 BPM)</option><option value="funk">Funk (130 BPM)</option><option value="upload">Escolher música do aparelho</option></select></div>
+<div class="row" id="uploadRow" hidden><label class="file" for="audioFile">Escolher música</label><input id="audioFile" type="file" accept="audio/*"><span class="small" id="audioName">Nenhum arquivo</span><label for="bpm">BPM:</label><input id="bpm" type="number" value="100" min="60" max="200"></div>
+<audio id="audio" controls></audio><div class="controls"><button class="primary" id="play">▶ Iniciar rodada</button><button id="pause" disabled>⏸ Pausar</button><button id="reset">↻ Reiniciar</button></div>
+<div class="row"><label for="difficulty">Dificuldade:</label><select id="difficulty"><option>Iniciante</option><option selected>Intermediário</option><option>Avançado</option></select></div>
+<div class="note"><b>Importante:</b> use músicas que você tenha direito de reproduzir. A pontuação compara os ângulos dos braços; pernas e corpo não entram. O vídeo é processado no navegador e o modelo de pose vem de uma CDN externa.</div></aside></div></main>
+<script type="module">
+const $=id=>document.getElementById(id),v=$('video'),cv=$('canvas'),cx=cv.getContext('2d'),sc=$('stage'),g=sc.getContext('2d'),COL=['#ff2d95','#38f2ff','#7cf0a8','#ffd84a'],CDN='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+let stream=null,model=null,mirror=true,playing=false,cd=0,audioUrl=null,parts=[],lastVT=-1,lastUI=0;
+const slots=[0,1,2,3].map(()=>({seen:-1e9,score:0,combo:0,c:null,lm:null,prev:null}));
+const BPMS={demo:120,funk:130},bpm=()=>$('song').value==='upload'?(+$('bpm').value||100):BPMS[$('song').value],beat=()=>60/bpm();
+// Poses do coach: [braço esq. alto, antebraço esq., braço dir. alto, antebraço dir.] em graus (0 = para baixo, 90 = direita da tela, 180 = para cima)
+const P=[[-8,-4,8,4],[-90,-90,90,90],[-150,-165,150,165],[-40,50,40,-50],[-160,-175,90,90],[-90,-90,160,175],[20,100,-20,-100],[-120,-135,120,135],[-90,-90,40,-50],[-40,50,90,90],[-60,-60,60,60],[-90,-90,90,90]];
+const dd=(a,b)=>((b-a+540)%360)-180,ease=f=>{f=Math.max(0,(f-.3)/.7);return f*f*(3-2*f)},mod=(i)=>((i%12)+12)%12;
+const pose=pos=>{const i=Math.floor(pos),e=ease(pos-i),A=P[mod(i)],B=P[mod(i+1)];return A.map((a,j)=>a+dd(a,B[j])*e)};
+const lmb=(x,y,l,d)=>{const r=d*Math.PI/180;return[x+Math.sin(r)*l,y+Math.cos(r)*l]};
+function fig(c,x,y,s,a,o={}){c.save();c.translate(x+(o.sw||0)*s,y-(o.bob||0)*s);c.scale(s,s);c.lineCap=c.lineJoin='round';const L=o.legs||[-5,-2,5,2];
+const pass=(ex,col)=>{c.strokeStyle=c.fillStyle=col;[[-1,L[0],L[1]],[1,L[2],L[3]]].forEach(([sd,t,sh])=>{const hx=sd*10,[kx,ky]=lmb(hx,0,46,t),[ax,ay]=lmb(kx,ky,46,sh);c.lineWidth=15+ex;c.beginPath();c.moveTo(hx,0);c.lineTo(kx,ky);c.lineTo(ax,ay);c.stroke()});
+c.lineWidth=10+ex;c.beginPath();c.moveTo(-21,-64);c.lineTo(21,-64);c.lineTo(14,2);c.lineTo(-14,2);c.closePath();c.fill();c.stroke();
+[[-1,0,1],[1,2,3]].forEach(([sd,i,j])=>{const sx=sd*21,sy=-62,[ex1,ey]=lmb(sx,sy,38,a[i]),[wx,wy]=lmb(ex1,ey,35,a[j]);c.lineWidth=12+ex;c.beginPath();c.moveTo(sx,sy);c.lineTo(ex1,ey);c.lineTo(wx,wy);c.stroke();c.beginPath();c.arc(wx,wy,7+ex/2,0,7);c.fill()});
+c.beginPath();c.arc(0,-88,14+ex/2,0,7);c.fill();c.lineWidth=8+ex;c.beginPath();c.moveTo(0,-76);c.lineTo(0,-64);c.stroke()};
+if(o.flat)pass(0,o.col);else{c.shadowColor=o.rim;c.shadowBlur=22;pass(5,o.rim);c.shadowBlur=0;const gr=c.createLinearGradient(0,-105,0,95);gr.addColorStop(0,o.c1);gr.addColorStop(1,o.c2);pass(0,gr)}c.restore()}
+function burst(i){const W=sc.width,H=sc.height;for(let k=0;k<22;k++)parts.push({x:W*(.35+.3*Math.random()),y:H*.35,vx:(Math.random()-.5)*7*devicePixelRatio,vy:-Math.random()*7*devicePixelRatio,s:(3+Math.random()*4)*devicePixelRatio,l:1,c:k%3?COL[i]:'#fff'})}
+function drawStage(t,now){const W=sc.width,H=sc.height,b=beat(),bt=t/b,fr=((bt%1)+1)%1,pulse=Math.pow(1-fr,3),fy=H*.76;
+let gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#1a0838');gr.addColorStop(.7,'#0a0420');gr.addColorStop(1,'#05020e');g.fillStyle=gr;g.fillRect(0,0,W,H);
+for(let r=0;r<7;r++)for(let q=0;q<22;q++){const a=.08+.22*Math.max(0,Math.sin(q*.6+r*.9+t*2.4));g.fillStyle=`hsla(${(q*14+r*20+t*30)%360},90%,60%,${a+pulse*.1})`;g.beginPath();g.arc(W*(q+.5)/22,H*.05+r*H*.07,W*.011,0,7);g.fill()}
+g.globalCompositeOperation='lighter';for(let k=0;k<4;k++){const x0=W*(.12+.25*k),x1=W*.5+Math.sin(t*.9+k*1.9)*W*.18*(k%2?1:-1)+(k-1.5)*W*.06,h=(300+k*55+t*18)%360,lg=g.createLinearGradient(x0,0,x1,fy);lg.addColorStop(0,`hsla(${h},100%,65%,${.28+pulse*.2})`);lg.addColorStop(1,`hsla(${h},100%,60%,0)`);g.fillStyle=lg;g.beginPath();g.moveTo(x0-6,0);g.lineTo(x0+6,0);g.lineTo(x1+W*.09,fy);g.lineTo(x1-W*.09,fy);g.fill()}g.globalCompositeOperation='source-over';
+gr=g.createLinearGradient(0,fy,0,H);gr.addColorStop(0,'#2a0f55');gr.addColorStop(1,'#07030f');g.fillStyle=gr;g.fillRect(0,fy,W,H-fy);g.lineWidth=1;
+for(let q=-10;q<=10;q++){g.strokeStyle=`hsla(${(q*18+t*40)%360},100%,65%,.35)`;g.beginPath();g.moveTo(W/2+q*W*.02,fy);g.lineTo(W/2+q*W*.2,H);g.stroke()}
+for(let r=0;r<6;r++){const y=fy+(H-fy)*Math.pow((r+fr)/6,1.8);g.strokeStyle=`rgba(255,255,255,${.1+pulse*.15})`;g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke()}
+const s=H*.6/196,px=W/2,py=fy-92*s,a=pose(Math.max(0,bt)),w=(Math.sin(bt*Math.PI)+1)/2,o={c1:'#ff2d95',c2:'#7a3cff',rim:'#38f2ff',sw:Math.sin(bt*Math.PI)*5,bob:Math.abs(Math.sin(bt*Math.PI))*5,legs:[-6-14*w,-4+8*w,6+14*(1-w),4-8*(1-w)]};
+g.strokeStyle=`hsla(320,100%,70%,${.5*pulse})`;g.lineWidth=3;g.beginPath();g.ellipse(px,fy,W*(.12+.12*(1-pulse)),H*.03*(2-pulse),0,0,7);g.stroke();
+g.save();g.translate(0,2*fy);g.scale(1,-1);g.globalAlpha=.2;fig(g,px,py,s,a,{...o,rim:'#7a3cff'});g.restore();fig(g,px,py,s,a,o);
+parts=parts.filter(p=>p.l>0);parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.25*devicePixelRatio;p.l-=.02;g.globalAlpha=Math.max(0,p.l);g.fillStyle=p.c;g.fillRect(p.x,p.y,p.s,p.s)});g.globalAlpha=1;
+if($('mode').value==='choreo'){const ts=H*.115,y=H*.9,tx=W*.18,p0=Math.max(0,bt);g.fillStyle='#000b';g.fillRect(0,y-ts*.8,W,ts*1.6);
+for(let i=Math.ceil(p0-.5);i<p0+7;i++){const dx=i-p0,x=tx+dx*ts*1.3,sz=ts*(1+Math.max(0,.2-Math.abs(dx)*.4));g.globalAlpha=Math.max(.25,1-Math.max(0,dx)*.12);g.fillStyle=`hsl(${(i*47)%360},85%,62%)`;g.beginPath();g.roundRect(x-sz/2,y-sz/2,sz,sz,sz*.16);g.fill();fig(g,x,y+5*sz*.8/196,sz*.8/196,P[mod(i)],{flat:1,col:'#111'})}
+g.globalAlpha=1;g.strokeStyle='#fff';g.lineWidth=3;g.shadowColor='#fff';g.shadowBlur=12;g.beginPath();g.roundRect(tx-ts*.66,y-ts*.66,ts*1.32,ts*1.32,ts*.2);g.stroke();g.shadowBlur=0}
+g.fillStyle=`rgba(255,255,255,${pulse*.05})`;g.fillRect(0,0,W,H);const vg=g.createRadialGradient(W/2,H/2,H*.3,W/2,H/2,H*.95);vg.addColorStop(0,'#0000');vg.addColorStop(1,'#000c');g.fillStyle=vg;g.fillRect(0,0,W,H);
+if(cd>now){g.fillStyle='#fff';g.font=`900 ${H*.3|0}px system-ui`;g.textAlign='center';g.textBaseline='middle';g.shadowColor='#ff2d95';g.shadowBlur=30;g.fillText(Math.min(3,Math.ceil((cd-now)/1000)),W/2,H*.42);g.shadowBlur=0}}
+const links=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+function drawCam(now){cx.clearRect(0,0,cv.width,cv.height);const vw=v.videoWidth,vh=v.videoHeight;if(!vw||!stream)return;const k=Math.min(cv.width/vw,cv.height/vh),r={w:vw*k,h:vh*k};r.ox=(cv.width-r.w)/2;r.oy=(cv.height-r.h)/2;
+const M=p=>[r.ox+(mirror?1-p.x:p.x)*r.w,r.oy+p.y*r.h];
+slots.forEach((s,i)=>{if(now-s.seen>400||!s.lm)return;const lm=s.lm,col=COL[i];cx.lineCap='round';cx.strokeStyle=col;cx.fillStyle=col;cx.shadowColor=col;cx.shadowBlur=14;cx.lineWidth=r.h*.014;
+links.forEach(([a,b])=>{if(lm[a].visibility>.35&&lm[b].visibility>.35){const A=M(lm[a]),B=M(lm[b]);cx.beginPath();cx.moveTo(...A);cx.lineTo(...B);cx.stroke()}});
+[15,16,27,28].forEach(n=>{if(lm[n].visibility>.35){const p=M(lm[n]);cx.beginPath();cx.arc(p[0],p[1],r.h*.015,0,7);cx.fill()}});
+const[hx,hy]=M(lm[0]);cx.beginPath();cx.arc(hx,hy,r.h*.045,0,7);cx.stroke();cx.shadowBlur=0;
+if(lm[27].visibility>.3&&lm[28].visibility>.3){const a=M(lm[27]),b=M(lm[28]);cx.globalAlpha=.6;cx.beginPath();cx.ellipse((a[0]+b[0])/2,Math.max(a[1],b[1])+r.h*.01,Math.abs(a[0]-b[0])/2+r.h*.07,r.h*.02,0,0,7);cx.stroke();cx.globalAlpha=1}
+const cy=hy-r.h*.1;cx.beginPath();cx.roundRect(hx-r.h*.04,cy-r.h*.03,r.h*.08,r.h*.05,r.h*.015);cx.fill();cx.fillStyle='#000';cx.font=`800 ${r.h*.035|0}px system-ui`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('J'+(i+1),hx,cy-r.h*.005);
+if(s.fb&&now-s.fb.t<900){const al=1-(now-s.fb.t)/900;cx.globalAlpha=al;cx.font=`900 ${r.h*.065|0}px system-ui`;cx.lineWidth=5;cx.strokeStyle='#000';cx.fillStyle=s.fb.c;const fy=cy-r.h*.06-(1-al)*r.h*.08;cx.strokeText(s.fb.txt,hx,fy);cx.fillText(s.fb.txt,hx,fy);cx.globalAlpha=1}})}
+function armErr(lm,T){const m=mirror,L=m?[11,13,15]:[12,14,16],R=m?[12,14,16]:[11,13,15],vw=v.videoWidth,vh=v.videoHeight;if(![...L,...R].every(n=>lm[n].visibility>.4))return 180;
+const an=(a,b)=>Math.atan2((m?-1:1)*(b.x-a.x)*vw,(b.y-a.y)*vh)*180/Math.PI,A=[an(lm[L[0]],lm[L[1]]),an(lm[L[1]],lm[L[2]]),an(lm[R[0]],lm[R[1]]),an(lm[R[1]],lm[R[2]])];return A.reduce((s,x,j)=>s+Math.abs(dd(x,T[j])),0)/4}
+function fin(s,i){const tol=[1.35,1,.75][$('difficulty').selectedIndex],ch=$('mode').value==='choreo';let j;if(ch){const e=s.best/tol;j=e<22?3:e<38?2:e<55?1:0}else{const e=s.en*tol/(beat()/.5);j=e>1.1?3:e>.6?2:e>.28?1:0}
+const N=[['ERROU','#8a8fb5',0],['OK','#7cc4ff',40],['BOM','#7cf0a8',70],['PERFEITO','#ffd84a',100]][j];s.combo=j?s.combo+1:0;s.score+=N[2];s.fb={t:performance.now(),txt:N[0],c:N[1]};if(j===3)burst(i)}
+function judge(s,i,t,mot){const bt=t/beat(),k=Math.round(bt),d=Math.abs(bt-k);if(s.k!==k){if(s.k>0)fin(s,i);s.k=k;s.best=999;s.en=0}
+if($('mode').value==='choreo'){if(d<.35){const e=armErr(s.lm,P[mod(k)]);if(e<s.best)s.best=e}}else s.en+=mot}
+function assign(poses,now,t){const used=new Set(),keys=[11,12,15,16,23,24,27,28];
+poses.slice(0,4).forEach(lm=>{const c={x:(lm[11].x+lm[12].x+lm[23].x+lm[24].x)/4,y:(lm[11].y+lm[12].y+lm[23].y+lm[24].y)/4};let b=-1,bd=.3;
+slots.forEach((s,i)=>{if(!used.has(i)&&s.c&&now-s.seen<15000){const d=Math.hypot(s.c.x-c.x,s.c.y-c.y);if(d<bd){bd=d;b=i}}});
+if(b<0)b=slots.findIndex((s,i)=>!used.has(i)&&now-s.seen>2500);if(b<0)return;used.add(b);const s=slots[b];let mot=0;
+if(s.prev)keys.forEach(n=>{mot+=Math.hypot(lm[n].x-s.prev[n].x,lm[n].y-s.prev[n].y)});s.prev=lm.map(p=>({x:p.x,y:p.y}));s.lm=lm;s.c=c;s.seen=now;
+if(playing&&t>.2)judge(s,b,t,mot)})}
+function showScores(){const now=performance.now(),tot=Math.max(1,Math.floor(($('audio').duration||60)/beat())*100);
+$('scores').innerHTML=slots.map((s,i)=>{const on=now-s.seen<2500,f=s.score/tot,st=[.2,.4,.6,.75,.9].filter(x=>f>=x).length;
+return`<div class="score" style="--c:${COL[i]}"><strong>Jogador ${i+1}${on?' • detectado':''}</strong><b>${on||s.score?Math.round(s.score):'—'}</b><span class="stars">${'★'.repeat(st)}${'☆'.repeat(5-st)}</span><span class="small">${on&&s.combo>1?'Combo x'+s.combo:on?(playing?'Dançando':'Pronto'):'Aguardando'}</span><i style="width:${Math.min(100,f*100)}%"></i></div>`}).join('')}
+function frame(){requestAnimationFrame(frame);const now=performance.now(),au=$('audio');
+if(cd&&now>=cd){cd=0;au.play().then(()=>{playing=true;status('Dance!',true)}).catch(()=>{status('Não foi possível tocar o áudio. Toque em Iniciar de novo.');$('play').disabled=false;$('pause').disabled=true})}
+const t=playing?au.currentTime:cd>0?-(cd-now)/1000:now/1000;
+if(model&&stream&&v.readyState>=2&&v.currentTime!==lastVT){lastVT=v.currentTime;try{assign(model.detectForVideo(v,now).landmarks||[],now,t)}catch(e){console.warn(e)}}
+drawCam(now);drawStage(t,now);if(now-lastUI>200){lastUI=now;showScores()}}
+function status(t,good=false){$('status').textContent=t;$('dot').className='dot'+(good?' good':'')}
+function resize(){[cv,sc].forEach(c=>{c.width=Math.max(1,Math.round(c.clientWidth*devicePixelRatio));c.height=Math.max(1,Math.round(c.clientHeight*devicePixelRatio))})}
+const ro=new ResizeObserver(resize);ro.observe($('camBox'));ro.observe($('stageBox'));
+async function loadModel(){$('modelStatus').textContent='Carregando modelo corporal…';const vis=await import(CDN),fs=await vis.FilesetResolver.forVisionTasks(CDN+'/wasm'),mk=dl=>vis.PoseLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',delegate:dl},runningMode:'VIDEO',numPoses:4,minPoseDetectionConfidence:.45,minPosePresenceConfidence:.45,minTrackingConfidence:.45});
+try{model=await mk('GPU')}catch(e){model=await mk('CPU')}$('modelStatus').textContent='Modelo carregado. Mantenha os participantes separados e inteiros no enquadramento.'}
+$('start').onclick=async()=>{try{if(!navigator.mediaDevices?.getUserMedia)throw Error('Abra a página em HTTPS no Chrome.');status('Solicitando acesso à câmera…');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false});v.srcObject=stream;v.style.display='block';$('placeholder').style.display='none';await v.play();$('start').disabled=true;$('stop').disabled=false;$('mirror').disabled=false;await loadModel();status('Câmera e reconhecimento corporal ativos.',true)}
+catch(e){console.error(e);status('Não foi possível iniciar: '+(e.message||e.name));$('modelStatus').textContent='Confira a permissão da câmera e a conexão com a internet.';if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;v.style.display='none';$('placeholder').style.display='block';$('start').disabled=false}};
+function stop(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;v.srcObject=null;v.style.display='none';$('placeholder').style.display='block';if(model){model.close();model=null}slots.forEach(s=>s.seen=-1e9);$('start').disabled=false;$('stop').disabled=true;$('mirror').disabled=true;status('Câmera desligada.');$('modelStatus').textContent='Ative a câmera para carregar o reconhecimento corporal.'}
+$('stop').onclick=stop;$('mirror').onclick=()=>{mirror=!mirror;v.style.transform=mirror?'scaleX(-1)':'scaleX(1)'};
+function demoAudio(){const sr=22050,fk=$('song').value==='funk',st=60/(fk?130:120)/4*sr,n=sr*48,b=new ArrayBuffer(44+n*2),d=new DataView(b),w=(o,t)=>{for(let i=0;i<t.length;i++)d.setUint8(o+i,t.charCodeAt(i))};
+w(0,'RIFF');d.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');d.setUint32(16,16,true);d.setUint16(20,1,true);d.setUint16(22,1,true);d.setUint32(24,sr,true);d.setUint32(28,sr*2,true);d.setUint16(32,2,true);d.setUint16(34,16,true);w(36,'data');d.setUint32(40,n*2,true);
+const KI=fk?[0,3,6,8,11,14]:[0,4,8,12],SN=[4,12],HH=fk?[0,2,4,6,8,10,12,14]:[2,6,10,14],NT=[55,55,65.4,49];let lg=-1,k,sn,hh,bs,f0=55;
+for(let i=0;i<n;i++){const gi=Math.floor(i/st),q=gi%16,tt=(i-gi*st)/sr;if(gi!==lg){lg=gi;k=KI.includes(q);sn=SN.includes(q);hh=HH.includes(q);bs=k&&q!==4&&q!==12;f0=NT[Math.floor(gi/16)%4]}
+let x=Math.sin(2*Math.PI*f0*4*i/sr)*500;if(k)x+=Math.sin(2*Math.PI*(45*tt+4*(1-Math.exp(-tt*30))))*Math.exp(-tt*8)*9000;if(sn)x+=(Math.random()*2-1)*Math.exp(-tt*22)*5000;if(hh)x+=(Math.random()*2-1)*Math.exp(-tt*70)*2200;if(bs)x+=Math.sin(2*Math.PI*f0*tt)*Math.exp(-tt*5)*5000;
+d.setInt16(44+i*2,Math.max(-32767,Math.min(32767,x)),true)}
+if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(new Blob([b],{type:'audio/wav'}));$('audio').src=audioUrl}
+demoAudio();$('song').onchange=()=>{const s=$('song').value;$('uploadRow').hidden=s!=='upload';if(s==='upload'){$('audio').removeAttribute('src');$('audio').load()}else demoAudio()};
+$('mode').onchange=()=>{$('modeInfo').textContent=$('mode').value==='choreo'?'Imite o coach quando o pictograma chegar ao quadro branco.':'Dance livremente! Os pontos vêm da intensidade do movimento a cada batida.'};
+$('audioFile').onchange=e=>{const f=e.target.files[0];if(f){if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(f);$('audio').src=audioUrl;$('audioName').textContent=f.name}};
+function clear(){slots.forEach(s=>{s.score=0;s.combo=0;s.k=undefined;s.fb=null});parts=[];$('result').hidden=true}
+$('play').onclick=()=>{if(!stream){status('Ative a câmera antes de iniciar a rodada.');return}if(!$('audio').src){status('Escolha uma música primeiro.');return}$('play').disabled=true;$('pause').disabled=false;
+if($('audio').currentTime>.1&&!$('audio').ended){$('audio').play();playing=true}else{clear();$('audio').currentTime=0;cd=performance.now()+3200;status('Prepare-se…',true)}};
+$('pause').onclick=()=>{playing=false;cd=0;$('audio').pause();$('play').disabled=false;$('pause').disabled=true};
+$('reset').onclick=()=>{playing=false;cd=0;$('audio').pause();$('audio').currentTime=0;clear();$('play').disabled=false;$('pause').disabled=true};
+$('audio').onended=()=>{playing=false;$('play').disabled=false;$('pause').disabled=true;const r=slots.map((s,i)=>({i,p:Math.round(s.score)})).filter(x=>x.p>0).sort((a,b)=>b.p-a.p);
+$('result').innerHTML=r.length?`<h3>🏆 Jogador ${r[0].i+1} venceu!</h3>`+r.map((x,k)=>`<div>${k+1}º Jogador ${x.i+1} — ${x.p} pts</div>`).join(''):'<h3>Rodada concluída!</h3>';$('result').hidden=false};
+window.addEventListener('pagehide',()=>{if(stream)stream.getTracks().forEach(t=>t.stop());if(audioUrl)URL.revokeObjectURL(audioUrl)});
+resize();showScores();frame();
+</script></body></html>
